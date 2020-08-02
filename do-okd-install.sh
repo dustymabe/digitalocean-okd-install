@@ -1,14 +1,6 @@
 #!/bin/bash
 set -eu -o pipefail
 
-# Set up aliases for the binaries we are going to use
-shopt -s expand_aliases
-alias openshift-install='/var/b/shared/bin/okd/4.5.0-0.okd-2020-07-14-153706-ga/openshift-install'
-alias kubectl='/var/b/shared/bin/okd/4.5.0-0.okd-2020-07-14-153706-ga/kubectl'
-alias oc='/var/b/shared/bin/okd/4.5.0-0.okd-2020-07-14-153706-ga/oc'
-alias doctl='/var/b/shared/bin/doctl/v1.45.1/doctl'
-alias doctl='/var/b/shared/bin/doctl/v1.46.0/doctl'
-
 # Load the environment variables that control the behavior of this
 # script. 
 source ./config
