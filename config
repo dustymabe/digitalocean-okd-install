@@ -47,3 +47,11 @@ WORKER_DROPLETS_TAG="${CLUSTERNAME}-worker"
 
 # The size of the backing volume for the container registry
 REGISTRY_VOLUME_SIZE='20' # in GiB
+
+# If some binaries aren't in your $PATH you can set them up as an
+# alias here if you like. For example:
+#
+# shopt -s expand_aliases
+# alias oc=/path/to/oc
+# alias doctl='/path/to/doctl'
+# alias openshift-install='/path/to/openshift-install'
