@@ -1,0 +1,33 @@
+# This config is an opportunity to make customizations or to workaround bugs
+# that may exist for the control plane nodes.
+variant: fcos
+version: 1.1.0
+ignition:
+  config:
+    merge:
+      - local: ./generated-files/master.ign
+systemd:                        
+  units:                        
+  # Set the hostname
+  # Fixed in testing 32.20200726.2.0+ 
+  # Will be fixed in stable 32.20200726.3.0+
+  # https://github.com/coreos/fedora-coreos-tracker/issues/538
+  - name: sethostname.service       
+    enabled: true               
+    contents: |                 
+      [Unit]
+      After=NetworkManager-wait-online.service
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/run-hostnamectl
+      RemainAfterExit=yes
+      [Install]
+      WantedBy=multi-user.target
+storage:
+  files:
+    - path: /usr/local/bin/run-hostnamectl
+      mode: 0755
+      contents:
+        inline: |
+          #!/usr/bin/bash
+          hostnamectl set-hostname $(curl -s http://169.254.169.254/metadata/v1/hostname)

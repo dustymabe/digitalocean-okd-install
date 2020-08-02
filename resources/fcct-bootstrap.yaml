@@ -1,0 +1,32 @@
+# Pull the bootstrap ignition file from a remote location
+# because it's larger than DO user data limit. Also set the
+# hostname (fixed in future FCOS release).
+variant: fcos
+version: 1.1.0
+ignition:
+  config:
+    merge:
+      - source: SOURCE_URL
+        verification:
+          hash: SHA512
+systemd:                        
+  units:                        
+  - name: sethostname.service       
+    enabled: true
+    contents: |                 
+      [Unit]
+      After=NetworkManager-wait-online.service
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/run-hostnamectl
+      RemainAfterExit=yes
+      [Install]
+      WantedBy=multi-user.target
+storage:
+  files:
+    - path: /usr/local/bin/run-hostnamectl
+      mode: 0755
+      contents:
+        inline: |
+          #!/usr/bin/bash
+          hostnamectl set-hostname $(curl -s http://169.254.169.254/metadata/v1/hostname)

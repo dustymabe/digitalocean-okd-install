@@ -1,0 +1,43 @@
+# vim: set syntax=bash
+
+# This file contains values that control the behavior of do-okd-install.sh
+
+# Set the name/domain you'd like to use for this cluster.
+CLUSTERNAME='okdtest'
+BASEDOMAIN='example.com'
+DOMAIN="${CLUSTERNAME}.${BASEDOMAIN}"
+
+# Set the region to use. Default to nyc3.
+DIGITAL_OCEAN_REGION='nyc3'
+
+# S3 compatible endpoint for SPACES in this region.
+SPACES_ENDPOINT="https://${DIGITAL_OCEAN_REGION}.digitaloceanspaces.com"
+
+# Bucket to use. The DOMAIN should be unique enough.
+SPACES_BUCKET="s3://${DOMAIN}"
+
+# The ssh keypair id (required to start a droplet)
+DROPLET_KEYPAIR='1111111' # `doctl compute ssh-key list` to fine IDs
+
+# The size of the droplets. 
+DROPLET_SIZE='s-6vcpu-16gb' # `doctl compute size list` for more options
+
+# The location of the Fedora CoreOS image to use. The script takes
+# care of the import [1] for you. It will also skip the image import if
+# the image with $DROPLET_IMAGE_NAME already exists. You can get the
+# URL for the latest DigitalOcean image from the download page [2].
+#
+# [1] https://docs.fedoraproject.org/en-US/fedora-coreos/provisioning-digitalocean/#_creating_a_digitalocean_custom_image
+# [2] https://getfedora.org/coreos/download?tab=cloud_operators&stream=stable
+FCOS_IMAGE_URL='https://example.com/builds/fedora-coreos-32.20200629.3.0-digitalocean.x86_64.qcow2.gz'
+
+# Keep it simple. Derive the image name from the URL.
+DROPLET_IMAGE_NAME="${FCOS_IMAGE_URL##*/}"
+
+# Set a tag to use for all droplets, control plane, and workers
+ALL_DROPLETS_TAG="$CLUSTERNAME"
+CONTROL_DROPLETS_TAG="${CLUSTERNAME}-control"
+WORKER_DROPLETS_TAG="${CLUSTERNAME}-worker"
+
+# The size of the backing volume for the container registry
+REGISTRY_VOLUME_SIZE='20' # in GiB
