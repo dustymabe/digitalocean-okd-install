@@ -58,10 +58,8 @@ generate_manifests() {
         sed -i "s/$token/${!token}/" generated-files/install-config.yaml
     done
 
-    # Generate manifests, add cvo-overrides to disable some pieces
-    # and create the ignition configs from that.
+    # Generate manifests and create the ignition configs from that.
     openshift-install create manifests --dir=generated-files
-    #cat cvo-overrides.yaml >> generated-files/manifests/cvo-overrides.yaml
     openshift-install create ignition-configs --dir=generated-files
 
     # Copy the bootstrap ignition file to a remote location so we can
