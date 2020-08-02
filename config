@@ -25,7 +25,7 @@ SPACES_BUCKET="s3://${DOMAIN}"
 # The ssh keypair id (required to start a droplet)
 DROPLET_KEYPAIR='1111111' # `doctl compute ssh-key list` to fine IDs
 
-# The size of the droplets. 
+# The size of the droplets.
 DROPLET_SIZE='s-6vcpu-16gb' # `doctl compute size list` for more options
 
 # The location of the Fedora CoreOS image to use. The script takes

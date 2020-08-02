@@ -2,7 +2,7 @@
 set -eu -o pipefail
 
 # Load the environment variables that control the behavior of this
-# script. 
+# script.
 source ./config
 
 # Returns a string representing the image ID for a given name.
@@ -59,14 +59,14 @@ generate_manifests() {
     done
 
     # Generate manifests, add cvo-overrides to disable some pieces
-    # and create the ignition configs from that. 
+    # and create the ignition configs from that.
     openshift-install create manifests --dir=generated-files
     #cat cvo-overrides.yaml >> generated-files/manifests/cvo-overrides.yaml
     openshift-install create ignition-configs --dir=generated-files
 
     # Copy the bootstrap ignition file to a remote location so we can
     # pull from it on startup. It's too large to fit in user-data.
-    sum=$(sha512sum ./generated-files/bootstrap.ign | cut -d ' ' -f 1) 
+    sum=$(sha512sum ./generated-files/bootstrap.ign | cut -d ' ' -f 1)
     aws --endpoint-url $SPACES_ENDPOINT s3 cp \
         ./generated-files/bootstrap.ign "${SPACES_BUCKET}/bootstrap.ign"
 
@@ -81,7 +81,7 @@ generate_manifests() {
     cat resources/fcct-bootstrap.yaml     | \
         sed "s|SHA512|sha512-${sum}|"     | \
         sed "s|SOURCE_URL|${escapedurl}|" | \
-        fcct -o ./generated-files/bootstrap-processed.ign 
+        fcct -o ./generated-files/bootstrap-processed.ign
 
     # Add tweaks to the control plane config
     cat resources/fcct-control-plane.yaml | \
@@ -374,7 +374,7 @@ fixup_registry_storage() {
         $retainKeys:
           - type
         type: Recreate'
-    sleep 10 # wait a bit for image-registry deployment 
+    sleep 10 # wait a bit for image-registry deployment
     oc patch deployment image-registry -n openshift-image-registry -p "$PATCH"
 
     # scale the deployment down to 1 desired pod since the volume for
@@ -402,7 +402,7 @@ EOF
 destruct() {
     cat <<EOF
 #########################################################
-Deleting resources created for OKD. This is a dumb delete 
+Deleting resources created for OKD. This is a dumb delete
 which attempts to delete things without checking if they
 exist so you'll need to ignore error messages if some
 resources are already deleted.
@@ -428,7 +428,7 @@ EOF
     set -e
 }
 
-which() { 
+which() {
     (alias; declare -f) | /usr/bin/which --read-alias --read-functions --show-tilde --show-dot $@
 }
 
@@ -452,7 +452,7 @@ main() {
              AWS_SECRET_ACCESS_KEY  \
              DIGITALOCEAN_ACCESS_TOKEN; do
         if [[ -z "${!v-}" ]]; then
-            echo "You must set environment variable $v" >&2 
+            echo "You must set environment variable $v" >&2
             return 1
         fi
     done
@@ -485,11 +485,11 @@ main() {
     generate_manifests
 
     # Create the droplets and wait some time for them to get assigned
-    # addresses so that we can create dns records using those addresses 
+    # addresses so that we can create dns records using those addresses
     create_droplets; sleep 20
 #   add_droplets_to_load_balancer
 #   add_droplets_to_firewall
-    
+
     # Create domain and dns records. Do it after droplet creation
     # because some entries are for dynamic addresses
     create_domain_and_dns_records
