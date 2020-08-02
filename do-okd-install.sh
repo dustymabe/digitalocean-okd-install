@@ -44,9 +44,19 @@ create_image_if_not_exists() {
 generate_manifests() {
     echo "Generating manifests/configs for install."
 
-    # Clear out old generated files and put install-config in place
+    # Clear out old generated files
     rm -rf ./generated-files/ && mkdir ./generated-files
-    cp resources/install-config.yaml generated-files/
+
+    # Copy install-config in place (remove comments) and replace tokens
+    # in the template with the actual values we want to use.
+    grep -v '^#' resources/install-config.yaml.in > generated-files/install-config.yaml
+    for token in BASEDOMAIN      \
+                 CLUSTERNAME     \
+                 NUM_OKD_WORKERS \
+                 NUM_OKD_CONTROL_PLANE;
+    do
+        sed -i "s/$token/${!token}/" generated-files/install-config.yaml
+    done
 
     # Generate manifests, add cvo-overrides to disable some pieces
     # and create the ignition configs from that. 
@@ -82,6 +92,27 @@ generate_manifests() {
         fcct -d ./ -o ./generated-files/worker-processed.ign
 }
 
+# returns if we have any worker nodes or not to create
+have_workers() {
+    if [ $NUM_OKD_WORKERS -gt 0 ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# prints a sequence of numbers to iterate over from 0 to N-1
+# for the number of control plane nodes
+control_plane_num_sequence() {
+    seq 0 $((NUM_OKD_CONTROL_PLANE-1))
+}
+
+# prints a sequence of numbers to iterate over from 0 to N-1
+# for the number of worker nodes
+worker_num_sequence() {
+    seq 0 $((NUM_OKD_WORKERS-1))
+}
+
 create_droplets() {
     echo "Creating droplets."
 
@@ -98,19 +129,21 @@ create_droplets() {
         --user-data-file generated-files/bootstrap-processed.ign
 
     # Create control plane nodes
-    for num in 0 1 2; do 
-        doctl compute droplet create "okd-node${num}" $common_options \
+    for num in $(control_plane_num_sequence); do
+        doctl compute droplet create "okd-control-${num}" $common_options \
             --tag-names "${ALL_DROPLETS_TAG},${CONTROL_DROPLETS_TAG}" \
             --user-data-file generated-files/control-plane-processed.ign
     done
 
-  ##WORKER_DROPLETS_TAG="${CLUSTERNAME}-worker"
-  ### Create control plane nodes
-  ##for num in 0 1 2; do 
-  ##    doctl compute droplet create "okd-node${num}" $common_options \
-  ##        --tag-names "${ALL_DROPLETS_TAG},${WORKER_DROPLETS_TAG}" \
-  ##        --user-data-file generated-files/control-plane-processed.ign
-  ##done
+    # Create worker nodes
+    if have_workers; then
+        for num in $(worker_num_sequence); do
+            doctl compute droplet create "okd-worker-${num}" $common_options \
+                --tag-names "${ALL_DROPLETS_TAG},${WORKER_DROPLETS_TAG}" \
+                --user-data-file generated-files/control-plane-processed.ign
+        done
+    fi
+
 }
 
 create_load_balancer() {
@@ -223,18 +256,17 @@ create_domain_and_dns_records() {
     #    -                   api.${DOMAIN}.
     #
     ip=$(get_load_balancer_ip)
-    while read record; do
+    for record in "api.${DOMAIN}."     \
+                  "api-int.${DOMAIN}." \
+                  "*.apps.${DOMAIN}."  \
+                  "oauth-openshift.apps.${DOMAIN}.";
+    do
         doctl compute domain records create $DOMAIN \
             --record-name $record \
             --record-type A       \
             --record-ttl 1800     \
             --record-data $ip
-    done <<EOF
-api.${DOMAIN}.
-api-int.${DOMAIN}.
-*.apps.${DOMAIN}.
-oauth-openshift.apps.${DOMAIN}.
-EOF
+    done
 
     # Also enter in required internal cluster IP SRV records:
     #    _service._proto.name.              TTL  class  SRV # priority weight  port    target.
@@ -242,7 +274,7 @@ EOF
     #   _etcd-server-ssl._tcp.${DOMAIN}.  86400   IN    SRV     0        10    2380    etcd-0.${DOMAIN}
     #   _etcd-server-ssl._tcp.${DOMAIN}.  86400   IN    SRV     0        10    2380    etcd-1.${DOMAIN}
     #   _etcd-server-ssl._tcp.${DOMAIN}.  86400   IN    SRV     0        10    2380    etcd-2.${DOMAIN}
-    while read target; do
+    for num in $(control_plane_num_sequence); do
         doctl compute domain records create $DOMAIN  \
             --record-name "_etcd-server-ssl._tcp.${DOMAIN}." \
             --record-type SRV      \
@@ -250,18 +282,16 @@ EOF
             --record-priority 0    \
             --record-weight 10     \
             --record-port 2380     \
-            --record-data $target 
-    done <<EOF
-etcd-0.${DOMAIN}.
-etcd-1.${DOMAIN}.
-etcd-2.${DOMAIN}.
-EOF
+            --record-data "etcd-${num}.${DOMAIN}."
+    done
 
-    # Droplets should be up already.
-    # Set up DNS etcd-{0,1,2} records (required)
-    # Set up DNS okd-node{0,1,2) records (optional/convenience)
-    for num in 0 1 2; do
-        id=$(doctl compute droplet list -o json | jq -r ".[] | select(.name == \"okd-node${num}\").id")
+    # Droplets should be up already. Set up DNS entries.
+
+    # First for the control plane nodes:
+    # Set up DNS etcd-{0,1,2..} records (required)
+    # Set up DNS okd-control-{0,1,2..} records (optional/convenience)
+    for num in $(control_plane_num_sequence); do
+        id=$(doctl compute droplet list -o json | jq -r ".[] | select(.name == \"okd-control-${num}\").id")
         # Set DNS record with private IP
         ip=$(doctl compute droplet get $id -o json | jq -r '.[].networks.v4[] | select(.type == "private").ip_address')
         doctl compute domain records create $DOMAIN \
@@ -272,13 +302,28 @@ EOF
         # Set DNS record with public IP
         ip=$(doctl compute droplet get $id -o json | jq -r '.[].networks.v4[] | select(.type == "public").ip_address')
         doctl compute domain records create $DOMAIN \
-            --record-name "okd-node${num}.${DOMAIN}." \
+            --record-name "okd-control-${num}.${DOMAIN}." \
             --record-type A       \
             --record-ttl 1800     \
             --record-data $ip
     done
-}
 
+    # Next, for the worker nodes:
+    # Set up DNS okd-worker-{0,1,2..} records (optional/convenience)
+    # Create worker nodes
+    if have_workers; then
+        for num in $(worker_num_sequence); do
+            id=$(doctl compute droplet list -o json | jq -r ".[] | select(.name == \"okd-worker-${num}\").id")
+            # Set DNS record with public IP
+            ip=$(doctl compute droplet get $id -o json | jq -r '.[].networks.v4[] | select(.type == "public").ip_address')
+            doctl compute domain records create $DOMAIN \
+                --record-name "okd-worker-${num}.${DOMAIN}." \
+                --record-type A       \
+                --record-ttl 1800     \
+                --record-data $ip
+        done
+    fi
+}
 
 # https://github.com/digitalocean/csi-digitalocean
 configure_DO_block_storage_driver() {

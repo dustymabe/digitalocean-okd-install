@@ -7,6 +7,12 @@ CLUSTERNAME='okdtest'
 BASEDOMAIN='example.com'
 DOMAIN="${CLUSTERNAME}.${BASEDOMAIN}"
 
+# Determine how many control plane and worker nodes you'd like.
+# Minimum workers=0. Minimum control plane=3. If no workers then
+# the control pane nodes will be marked as schedulable.
+NUM_OKD_WORKERS=2
+NUM_OKD_CONTROL_PLANE=3
+
 # Set the region to use. Default to nyc3.
 DIGITAL_OCEAN_REGION='nyc3'
 
