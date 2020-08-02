@@ -172,13 +172,6 @@ create_load_balancer() {
     done
 }
 
-add_droplets_to_load_balancer() {
-    echo "Adding droplets to load-balancer."
-    lbid=$(get_load_balancer_id)
-    droplets=$(doctl compute droplet list --no-header --format ID | tr '\n' ',')
-    doctl compute load-balancer add-droplets $lbid --droplet-ids "${droplets}"
-}
-
 get_load_balancer_id() {
     doctl compute load-balancer list -o json | \
         jq -r ".[] | select(.name == \"${DOMAIN}\").id"
@@ -213,13 +206,6 @@ create_firewall() {
         --tag-names $ALL_DROPLETS_TAG       \
         --outbound-rules "${outboundrules}" \
         --inbound-rules "${inboundrules:0:-1}" # pull off trailing space
-}
-
-add_droplets_to_firewall() {
-    echo "Adding droplets to firewall."
-    fwid=$(get_firewall_id)
-    droplets=$(doctl compute droplet list --no-header --format ID | tr '\n' ',')
-    doctl compute firewall add-droplets $fwid --droplet-ids "${droplets}"
 }
 
 get_firewall_id() {
@@ -487,8 +473,6 @@ main() {
     # Create the droplets and wait some time for them to get assigned
     # addresses so that we can create dns records using those addresses
     create_droplets; sleep 20
-#   add_droplets_to_load_balancer
-#   add_droplets_to_firewall
 
     # Create domain and dns records. Do it after droplet creation
     # because some entries are for dynamic addresses
