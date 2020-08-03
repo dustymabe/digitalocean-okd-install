@@ -385,6 +385,38 @@ spec:
 EOF
 }
 
+# This is a hack to allow us to get away with only configuring
+# one DigitalOcean load balancer. For now we direct the load
+# balancer just at the control-plane nodes.
+move_routers_to_control_plane() {
+    echo -e "\nMove routers to control plane nodes.\n"
+
+    while ! oc get ingresscontroller default -n openshift-ingress-operator &>/dev/null; do
+        echo "Waiting for ingresscontroller to be created..."
+        sleep 30
+    done
+
+    # Allow ingress routers to run on the control-plane nodes.
+    # https://docs.openshift.com/container-platform/4.1/networking/ingress-operator.html#nw-ingress-controller-configuration-parameters_configuring-ingress
+    PATCH='
+    spec:
+      nodePlacement:
+       nodeSelector:
+         matchLabels:
+           beta.kubernetes.io/os: linux
+           node-role.kubernetes.io/master: ""
+       tolerations:
+       - effect: "NoSchedule"
+         operator: "Exists"'
+    oc patch ingresscontroller default -n openshift-ingress-operator --type=merge -p "$PATCH" >/dev/null
+
+    # Also make a router run on every control-plane
+    PATCH="
+    spec:
+      replicas: ${NUM_OKD_CONTROL_PLANE}"
+    oc patch ingresscontroller default -n openshift-ingress-operator --type=merge -p "$PATCH" >/dev/null
+}
+
 # https://docs.okd.io/latest/installing/installing_bare_metal/installing-bare-metal.html#installation-approve-csrs_installing-bare-metal
 wait_and_approve_CSRs() {
     echo -e "\nApprove CSRs if needed.\n"
@@ -534,6 +566,10 @@ main() {
 
     # Wait for CSRs to come in and approve them before moving on
     wait_and_approve_CSRs
+
+    # Move the routers to the control plane. This is a hack because
+    # currently we only want to run one load balancer.
+    move_routers_to_control_plane
 
     # Wait for the install to complete
     echo -e "\nWaiting for install to complete.\n"
