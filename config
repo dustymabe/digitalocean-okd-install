@@ -1,6 +1,7 @@
 # vim: set syntax=bash
 
-# This file contains values that control the behavior of do-okd-install.sh
+# This file contains values that control the behavior of the
+# digitalocean-okd-install script.
 
 # Set the name/domain you'd like to use for this cluster.
 CLUSTERNAME='okdtest'
