@@ -76,18 +76,18 @@ generate_manifests() {
     escapedurl=${url//&/\\&}
 
     # Add tweaks to the bootstrap ignition and a pointer to the remote bootstrap
-    cat resources/fcct-bootstrap.yaml     | \
+    cat resources/butane-bootstrap.yaml   | \
         sed "s|SHA512|sha512-${sum}|"     | \
         sed "s|SOURCE_URL|${escapedurl}|" | \
-        fcct -o ./generated-files/bootstrap-processed.ign
+        butane -o ./generated-files/bootstrap-processed.ign
 
     # Add tweaks to the control plane config
-    cat resources/fcct-control-plane.yaml | \
-        fcct -d ./ -o ./generated-files/control-plane-processed.ign
+    cat resources/butane-control-plane.yaml | \
+        butane -d ./ -o ./generated-files/control-plane-processed.ign
 
     # Add tweaks to the worker config
-    cat resources/fcct-worker.yaml | \
-        fcct -d ./ -o ./generated-files/worker-processed.ign
+    cat resources/butane-worker.yaml | \
+        butane -d ./ -o ./generated-files/worker-processed.ign
 }
 
 # returns if we have any worker nodes or not to create
@@ -518,6 +518,7 @@ main() {
     # Check for required software
     reqs=(
         aws
+        butane
         doctl
         kubectl
         oc
