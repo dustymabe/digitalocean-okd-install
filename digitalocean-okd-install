@@ -326,7 +326,7 @@ stringData:
 EOF
 
     # Deploy DO CSI storage provisioner
-    DOCSIVERSION='2.0.0'
+    DOCSIVERSION='4.6.0'
     oc apply -fhttps://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v${DOCSIVERSION}/{crds.yaml,driver.yaml,snapshot-controller.yaml} >/dev/null
 
     # Patch the statefulset for hostNetwork access so it will work in OKD

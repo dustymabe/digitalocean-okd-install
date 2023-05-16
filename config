@@ -27,7 +27,7 @@ SPACES_BUCKET="s3://${DOMAIN}"
 DROPLET_KEYPAIR='1111111' # `doctl compute ssh-key list` to fine IDs
 
 # The size of the droplets.
-DROPLET_SIZE='s-6vcpu-16gb' # `doctl compute size list` for more options
+DROPLET_SIZE='s-8vcpu-16gb' # `doctl compute size list` for more options
 
 # The location of the Fedora CoreOS image to use. The script takes
 # care of the import [1] for you. It will also skip the image import if
@@ -35,7 +35,7 @@ DROPLET_SIZE='s-6vcpu-16gb' # `doctl compute size list` for more options
 # URL for the latest DigitalOcean image from the download page [2].
 #
 # [1] https://docs.fedoraproject.org/en-US/fedora-coreos/provisioning-digitalocean/#_creating_a_digitalocean_custom_image
-# [2] https://getfedora.org/coreos/download?tab=cloud_operators&stream=stable
+# [2] https://fedoraproject.org/coreos/download/?tab=cloud_operators&stream=stable#cloud_images
 FCOS_IMAGE_URL='https://example.com/builds/fedora-coreos-32.20200629.3.0-digitalocean.x86_64.qcow2.gz'
 
 # Keep it simple. Derive the image name from the URL.
