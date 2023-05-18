@@ -271,7 +271,11 @@ create_domain_and_dns_records() {
             --record-data "etcd-${num}.${DOMAIN}." >/dev/null
     done
 
-    # Droplets should be up already. Set up DNS entries.
+    # Droplets should be up already, but sometimes the networking
+    # information isn't returned yet. Let's wait briefly.
+    sleep 60
+
+    # Set up DNS entries.
 
     # First for the control plane nodes:
     # Set up DNS etcd-{0,1,2..} records (required)
